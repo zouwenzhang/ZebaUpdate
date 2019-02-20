@@ -4,7 +4,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.security.MessageDigest;
 
-public class MD5Util {
+public class FileMD5Util {
 	public static String getFileMD5(File file) {
 	    if (!file.isFile()) {
 	        return null;

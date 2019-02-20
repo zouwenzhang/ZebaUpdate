@@ -109,7 +109,7 @@ public class DownThread extends Thread {
                     lastp=progress;
                 }
                 if (numread <= 0) {
-                    final String downMD5=MD5Util.getFileMD5(saveFile);
+                    final String downMD5=FileMD5Util.getFileMD5(saveFile);
                     final File nf=new File(saveFile.getParentFile(),downMD5+".apk");
                     saveFile.renameTo(nf);
                     isSuccess=true;
