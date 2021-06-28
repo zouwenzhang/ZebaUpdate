@@ -1,5 +1,6 @@
 package com.zeba.update;
 
+import android.app.Activity;
 import android.app.Dialog;
 import android.content.Context;
 import android.graphics.Point;
@@ -9,8 +10,10 @@ import android.view.Gravity;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.io.File;
+import java.lang.ref.WeakReference;
 
 public class UpdateDialog  extends Dialog {
 
@@ -18,14 +21,22 @@ public class UpdateDialog  extends Dialog {
     private TextView tvContent;
     private TextView tvCancel;
     private TextView tvOk;
+    private TextView tvNoHint;
     private NumberProgressBar progressBar;
     private String url;
     private String fileMD5;
     private File saveDir;
     private File apkFile;
     private DownThread downThread;
+    private WeakReference<Activity> refActivity;
+    private Boolean isAllowInstall=null;
+    private String sTitle="发现新版本";
+    private String sContent="";
+    private String sOk="立即更新";
+    private boolean isForceUpdate=false;
+    private boolean isAutoCheck=true;
 
-    public UpdateDialog(Context context) {
+    public UpdateDialog(Activity context) {
         super(context,R.style.UpdateDialog);
         initView(context);
         initListener();
@@ -33,6 +44,7 @@ public class UpdateDialog  extends Dialog {
         setCanceledOnTouchOutside(false);
         setCancelable(false);
         saveDir=UpdateUtil.getSaveDir(context);
+        refActivity=new WeakReference<>(context);
     }
 
     private void initView(Context context){
@@ -42,6 +54,7 @@ public class UpdateDialog  extends Dialog {
         tvContent=view.findViewById(R.id.zeba_dialog_tv_update_content);
         tvCancel=view.findViewById(R.id.zeba_dialog_tv_update_cancel);
         tvOk=view.findViewById(R.id.zeba_dialog_tv_update_ok);
+        tvNoHint=view.findViewById(R.id.zeba_update_dialog_tv_no_hint);
         progressBar=view.findViewById(R.id.zeba_dialog_number_progress_bar);
         progressBar.setProgress(0);
     }
@@ -59,11 +72,24 @@ public class UpdateDialog  extends Dialog {
         tvOk.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                if(!checkPermission()){
+                    return;
+                }
                 if(apkFile!=null){
                     UpdateUtil.installAPP(getContext(),apkFile);
                 }else{
                     download();
                 }
+            }
+        });
+        tvNoHint.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if(downThread!=null){
+                    downThread.cancel();
+                }
+                UpdateUtil.setNoHint(refActivity.get());
+                dismiss();
             }
         });
     }
@@ -117,11 +143,13 @@ public class UpdateDialog  extends Dialog {
     }
 
     public UpdateDialog title(String title){
+        sTitle=title;
         tvTitle.setText(title);
         return this;
     }
 
     public UpdateDialog content(String content){
+        sContent=content;
         tvContent.setText(content);
         return this;
     }
@@ -131,7 +159,14 @@ public class UpdateDialog  extends Dialog {
         return this;
     }
 
+    public UpdateDialog autoCheck(boolean isShow){
+        isAutoCheck=isShow;
+        tvNoHint.setVisibility(isShow?View.VISIBLE:View.GONE);
+        return this;
+    }
+
     public UpdateDialog okText(String text){
+        sOk=text;
         tvOk.setText(text);
         return this;
     }
@@ -144,6 +179,7 @@ public class UpdateDialog  extends Dialog {
     }
 
     public UpdateDialog isForce(boolean force){
+        isForceUpdate=force;
         if(force){
             tvCancel.setVisibility(View.GONE);
         }else{
@@ -164,6 +200,11 @@ public class UpdateDialog  extends Dialog {
 
     @Override
     public void show() {
+        if(!isForceUpdate&&isAutoCheck){
+            if(UpdateUtil.isNoHint(refActivity.get())){
+                return;
+            }
+        }
         if(fileMD5!=null&&!"".equals(fileMD5)){
             apkFile=new File(saveDir,fileMD5+".apk");
             if(apkFile.exists()&&apkFile.isFile()){
@@ -174,4 +215,23 @@ public class UpdateDialog  extends Dialog {
         }
         super.show();
     }
+
+    private boolean checkPermission(){
+        if(isAllowInstall!=null&&!isAllowInstall){
+            tvTitle.setText(sTitle);
+            tvContent.setText(sContent);
+            tvOk.setText(sOk);
+            UpdateUtil.openInstallPermission(refActivity.get());
+            isAllowInstall=null;
+            return false;
+        }
+        isAllowInstall=UpdateUtil.checkInstallPermission(refActivity.get());
+        if(!isAllowInstall){
+            tvTitle.setText("提示");
+            tvContent.setText("应用自动更新权限已关闭，需要手动开启");
+            tvOk.setText("去开启");
+        }
+        return isAllowInstall;
+    }
+
 }

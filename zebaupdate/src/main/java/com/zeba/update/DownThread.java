@@ -2,6 +2,7 @@ package com.zeba.update;
 
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Base64;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -50,11 +51,10 @@ public class DownThread extends Thread {
     public void run() {
         boolean isSuccess=false;
         try {
-            File[] files=saveDir.listFiles();
-            if(files!=null){
-                for(File f:files){
-                    f.delete();
-                }
+            String fileName= Base64.encodeToString(mUrl.getBytes(),Base64.DEFAULT);
+            File saveFile=new File(saveDir.getAbsolutePath()+"/"+fileName+".apk");
+            if(saveFile.exists()&&saveFile.isFile()){
+                saveFile.delete();
             }
             URL url = new URL(mUrl);
             HttpURLConnection conn = (HttpURLConnection) url
@@ -84,10 +84,6 @@ public class DownThread extends Thread {
             conn.connect();
             int length = conn.getContentLength();
             InputStream is = conn.getInputStream();
-            File saveFile = new File(saveDir, "temp.apk");
-            if (saveFile.exists()) {
-                saveFile.delete();
-            }
             saveFile.createNewFile();
             FileOutputStream fos = new FileOutputStream(saveFile);
             int count = 0;

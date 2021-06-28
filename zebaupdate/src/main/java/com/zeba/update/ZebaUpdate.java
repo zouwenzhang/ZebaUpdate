@@ -1,5 +1,6 @@
 package com.zeba.update;
 
+import android.app.Activity;
 import android.content.Context;
 
 import java.io.File;
@@ -33,7 +34,7 @@ public class ZebaUpdate {
         }
     }
 
-    public static UpdateDialog createDialog(Context context){
+    public static UpdateDialog createDialog(Activity context){
         return new UpdateDialog(context);
     }
 }
